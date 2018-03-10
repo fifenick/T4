@@ -1,0 +1,197 @@
+try {
+// Imports
+importClass(com.terminalfour.publish.utils.BrokerUtils);
+importClass(com.terminalfour.publish.PathBuilder);
+importClass(com.terminalfour.publish.utils.TreeTraversalUtils);
+importClass(com.terminalfour.sitemanager.cache.utils.CSHelper);
+importClass(com.terminalfour.sitemanager.cache.CachedContent);
+importClass(com.terminalfour.sitemanager.cache.CachedSection);
+importPackage(java.lang);
+importPackage(com.terminalfour.tag.parser);
+importPackage(com.terminalfour.media);
+importPackage(com.terminalfour.sitemanager);
+importPackage(com.terminalfour.publish.utils);
+importPackage(com.terminalfour.content);
+importPackage(com.terminalfour.user);
+importPackage(com.terminalfour.template);
+importPackage(com.terminalfour.media);
+importPackage(com.terminalfour.tag.parser);
+importPackage(com.terminalfour.database);
+importPackage(com.terminalfour.list);
+ //////////////
+
+importClass(com.terminalfour.publish.utils.BrokerUtils); 
+importClass(com.terminalfour.sitemanager.cache.utils.CSHelper);
+importClass(com.terminalfour.sitemanager.cache.CachedContent);
+importClass(com.terminalfour.content.IContentManager);
+importClass(com.terminalfour.publish.cache.PublishCache);
+importClass(com.terminalfour.sitemanager.cache.SectionContentInformation);
+importClass(com.terminalfour.publish.PathBuilder); 
+importClass(com.terminalfour.spring.ApplicationContextProvider);
+importClass(com.terminalfour.sitemanager.cache.CachedContent);
+
+importClass(com.terminalfour.content.IContentManager);
+
+var cmgr = com.terminalfour.content.IContentManager;
+var contentManager = ApplicationContextProvider.getBean(com.terminalfour.content.IContentManager);
+var contentList = CSHelper.extractCachedContent (CSHelper.removeSpecialContent (section.getContent (publishCache.getChannel (), CachedContent.APPROVED)));
+
+
+var oCH = new ContentHierarchy();
+var sid = section.getID();
+var myID = content.getID();
+var displayOrder = oCH.getContent(dbStatement,sid,'en'); // get the content for the section 
+var myTypeID = content.getContentTypeID(); 				// get the type id for the current content
+var maxSize = displayOrder.length; 						// the number of content items in the section
+
+
+
+ // Grab all pieces of content on the page
+var cL = com.terminalfour.sitemanager.cache.utils.CSHelper.extractCachedContent (com.terminalfour.sitemanager.cache.utils.CSHelper.removeSpecialContent (section.getContent (publishCache.getChannel (), com.terminalfour.sitemanager.cache.CachedContent.APPROVED)));
+// Run through each piece of content, find out all the content types, and create a key array...
+var maxSize = cL.length; 						// the number of content items in the section
+var tempID= [];
+for each (c in cL) {
+	tempID[c.getID()]= String(c.getTemplateID());
+}
+  
+
+
+  
+  
+function isGrid(uid){
+  if (getTemplateId(uid) == myTypeID ){
+  	return true;
+  }else{
+  	return false
+  }
+}
+  
+function currentPos(uid){
+  return displayOrder.indexOf(uid,0);
+}  
+  
+function getTemplateId(uid){
+  return  tempID[uid];
+}
+  
+
+function getNextId(uid){
+ var next = currentPos(uid);
+  if(next == maxSize){
+    return false; // last item
+  }	else{
+  	next++;
+    return displayOrder[next];
+  }
+}
+  
+function getPrevious(uid){
+  var next = currentPos(uid);
+  if(next == 0){
+    return false; // first next
+  }	else{
+  	next--;
+    return displayOrder[next];
+  }
+}
+  
+  
+/**
+* Function that calculates if it’s the end of a row. 
+* Returns Boolean. 
+*/
+function isEndRow(myID) {
+	//if the one before it is a grid 
+  if(
+    	(getTemplateId(myID) == myTypeID) 
+    	&& (getTemplateId(getPrevious(myID)) == myTypeID) 
+    	&& (getTemplateId(getPrevious(getPrevious(myID))) == myTypeID) 
+    	&& (getTemplateId(getPrevious(getPrevious(getPrevious(myID)))) != myTypeID) 
+    ){
+  	return true;
+  }
+}
+  
+ /**
+* Function that calculates if it’s the end of a row. 
+* Returns Boolean. 
+*/
+function isStartRow(myID) {
+	//if the one before it is a grid 
+  if(
+    	(isEndRow(getPrevious(myID))  && getTemplateId(myID) == myTypeID) 
+    ){
+  	return true;
+  }
+}
+  
+  
+  
+  
+var pageItem = [];
+var item = [];
+for (i = 0; i < displayOrder.length; i++) { 
+
+  	item['order'] = i;
+  	item['uid'] = displayOrder[i];
+    item['tempid'] = getTemplateId(displayOrder[i]);
+  	item['isGrid'] =  isGrid(displayOrder[i]);
+    item['start'] ='' ;
+    item['stop'] = '';
+    item['cf'] = '';
+    item['mid'] = true;
+    item['value'] = '';
+   
+  
+	pageItem.push(item); 
+  document.write(getTemplateId(displayOrder[i]));
+}
+document.write(displayOrder.length); 
+  
+  
+  
+ /* 
+var formatter= "navbox/mid"
+
+//end grid
+if((getPrevious(myID) ==false)||(getTemplateId(getPrevious(myID)) != myTypeID )){
+  formatter = "navbox/top";
+}
+  
+
+  
+// start grid
+if((getNextId(myID) ==false) || (getTemplateId(getNextId(myID)) != myTypeID ) || isEndRow(myID) ){
+  formatter = "navbox/bottom";
+}
+  
+if(isStartRow(myID)){
+  formatter = "navbox/top";
+}
+  
+//if its a grid of one
+if((getTemplateId(myID) == myTypeID ) && (getTemplateId(getNextId(myID)) != myTypeID ) && (getTemplateId(getPrevious(myID)) != myTypeID ) ){
+  document.write('<div class="row">'); 
+  formatter = "navbox/bottom";
+}
+  
+if((getTemplateId(myID) == myTypeID ) && (isStartRow(myID)) && (getTemplateId(getNextId(myID)) != myTypeID )){
+    document.write('<div class="row">'); 
+  formatter = "navbox/bottom";
+}
+  
+if(isStartRow(myID)){
+  document.write('<div class="clearfix"></div>');
+}
+var tempManager = com.terminalfour.template.TemplateManager.getManager();
+var format 		= tempManager.getFormat(dbStatement,myTypeID,formatter);
+var formatString	= format.getFormatting();
+
+document.write(com.terminalfour.publish.utils.BrokerUtils.processT4Tags(dbStatement, publishCache, section, content, language, isPreview, formatString));
+    
+*/
+
+} catch(err){
+  document.write(err);
+}
